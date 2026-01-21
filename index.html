@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Column Rename Tool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { margin: 0; padding: 20px; background-color: #ffffff; font-family: 'Oswald', Arial, sans-serif; color: #000000; font-weight: 500; }
+        .page-container { width: 100%; max-width: 1400px; margin: 0 auto; }
+        .page-header { background-color: #004080; color: #ffffff; padding: 25px 30px; text-align: center; margin-bottom: 15px; border-radius: 8px 8px 0 0; }
+        .logo-row { display: flex; justify-content: center; align-items: center; gap: 30px; margin-bottom: 15px; }
+        .logo-box { background: #ffffff; border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: center; }
+        .logo-box img { width: 100px; height: auto; border-radius: 6px; }
+        .page-header h3 { margin: 12px 0 5px; font-size: 14px; font-weight: 700; letter-spacing: 1px; color: #ffffff; }
+        .page-header .tagline { margin: 0; font-size: 10px; font-weight: 500; color: #ffffff; }
+        .page-header h1 { margin: 20px 0 10px; font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: 1px; }
+        .page-header .subtitle { font-size: 14px; color: #ffffff; font-weight: 500; }
+        .content-card { border: 4px double #004080; border-radius: 12px; padding: 12px; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); margin-bottom: 15px; }
+        .content-inner { padding: 25px; }
+        .upload-section { background: #f8f9fa; padding: 2rem; border-radius: 8px; border: 2px dashed #004080; text-align: center; margin: 1rem 0; transition: all 0.3s ease; }
+        .upload-section:hover { border-color: #0056b3; background: #e7f3ff; }
+        .upload-section.drag-over { background: #e7f3ff; border-color: #0056b3; border-style: solid; }
+        .upload-section h3 { color: #004080; margin-bottom: 1rem; font-size: 18px; font-weight: 700; }
+        .upload-section p { color: #000000; font-weight: 500; font-size: 14px; }
+        .file-input-wrapper { position: relative; display: inline-block; cursor: pointer; background: #004080; color: white; padding: 14px 24px; border-radius: 6px; border: 2px solid #004080; font-size: 14px; font-weight: 700; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Oswald', Arial, sans-serif; margin-top: 1rem; }
+        .file-input-wrapper:hover { background: #0056b3; border-color: #0056b3; }
+        .file-input-wrapper input[type="file"] { position: absolute; left: -9999px; }
+        .file-status { margin-top: 15px; font-weight: 700; }
+        .file-status.loaded { color: #28a745; }
+        .file-status.error { color: #dc3545; }
+        .section-header { background-color: #004080; color: #ffffff; padding: 15px 20px; margin-bottom: 20px; border-radius: 6px; display: flex; align-items: center; gap: 15px; }
+        .section-icon { background: #ffffff; color: #004080; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+        .section-title { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin: 1.5rem 0; }
+        .stats-card { background: #f8f9fa; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); text-align: center; border: 2px solid #004080; transition: all 0.2s; }
+        .stats-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0, 64, 128, 0.2); }
+        .stats-card h4 { color: #666; font-size: 11px; margin-bottom: 0.5rem; text-transform: uppercase; }
+        .stats-card .metric-value { font-size: 1.6rem; color: #004080; margin-bottom: 0.25rem; font-weight: 700; }
+        .stats-card .metric-value.success { color: #28a745; }
+        .stats-card .metric-value.warning { color: #ffc107; }
+        .stats-card .metric-value.danger { color: #dc3545; }
+        .stats-card p { color: #666; font-size: 11px; }
+        .btn { padding: 14px 24px; border: 2px solid #004080; border-radius: 6px; font-size: 14px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'Oswald', Arial, sans-serif; transition: all 0.2s; margin: 5px; }
+        .btn-primary { background: #004080; color: #ffffff; }
+        .btn-primary:hover { background: #0056b3; border-color: #0056b3; }
+        .btn-secondary { background: #ffffff; color: #004080; }
+        .btn-secondary:hover { background: #004080; color: #ffffff; }
+        .btn-gold { background: #ffc107; color: #000000; border-color: #ffc107; }
+        .btn-gold:hover { background: #e0a800; border-color: #e0a800; }
+        .btn-success { background: #28a745; color: #ffffff; border-color: #28a745; }
+        .btn-success:hover { background: #218838; border-color: #218838; }
+        .btn:disabled { background: #6c757d; border-color: #6c757d; color: #ffffff; opacity: 0.6; cursor: not-allowed; }
+        .alert { padding: 1rem; border-radius: 6px; margin: 1rem 0; font-weight: 500; }
+        .alert-success { background: #d4edda; border: 2px solid #28a745; color: #155724; }
+        .alert-warning { background: #fff3cd; border: 2px solid #ffc107; color: #856404; }
+        .alert-error { background: #f8d7da; border: 2px solid #dc3545; color: #721c24; }
+        .alert-info { background: #e7f3ff; border: 2px solid #004080; color: #004080; }
+        .info-message { background: #e7f3ff; color: #004080; padding: 1rem; border-radius: 6px; border: 2px solid #004080; margin: 1rem 0; font-weight: 500; }
+        .hidden { display: none !important; }
+        .config-card { background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border: 2px solid #004080; margin: 1rem 0; }
+        .config-card h4 { color: #004080; margin-bottom: 1rem; font-size: 16px; font-weight: 700; }
+        .rename-list { max-height: 500px; overflow-y: auto; border: 2px solid #004080; border-radius: 6px; background: #ffffff; }
+        .rename-item { display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 1rem; padding: 1rem; border-bottom: 1px solid #ddd; align-items: center; }
+        .rename-item:last-child { border-bottom: none; }
+        .rename-item:hover { background: #f8f9fa; }
+        .rename-item.matched { background: #d4edda; }
+        .rename-item.unmatched { background: #fff3cd; }
+        .rename-item.manual { background: #e7f3ff; }
+        .column-name { font-family: 'Courier New', monospace; background: #f8f9fa; padding: 0.5rem 1rem; border-radius: 4px; border: 1px solid #004080; color: #004080; font-weight: 500; word-break: break-all; }
+        .column-name.new { background: #d4edda; border-color: #28a745; color: #155724; }
+        .arrow { color: #004080; font-weight: 700; font-size: 18px; }
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+        .status-badge.matched { background: #28a745; color: white; }
+        .status-badge.unmatched { background: #ffc107; color: #000; }
+        .status-badge.manual { background: #004080; color: white; }
+        .manual-input { width: 100%; padding: 0.5rem; border: 2px solid #004080; border-radius: 4px; font-size: 14px; background: #ffffff; color: #000000; font-family: 'Oswald', Arial, sans-serif; font-weight: 500; }
+        .manual-input:focus { outline: none; border-color: #0056b3; box-shadow: 0 0 0 2px rgba(0, 64, 128, 0.1); }
+        .table-container { max-height: 400px; overflow: auto; border: 2px solid #004080; border-radius: 6px; }
+        .results-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .results-table th { background: #004080; color: #ffffff; padding: 0.75rem; text-align: left; font-weight: 700; position: sticky; top: 0; }
+        .results-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #ddd; }
+        .results-table tr:nth-child(even) { background: #f8f9fa; }
+        .results-table tr:hover { background: #e7f3ff; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 1.5rem 0; }
+        .feature-card { background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border: 2px solid #004080; }
+        .feature-card h4 { color: #004080; margin-bottom: 1rem; font-size: 16px; font-weight: 700; text-transform: uppercase; }
+        .feature-card ul, .feature-card ol { color: #000000; line-height: 1.8; padding-left: 1.5rem; }
+        .feature-card li { margin-bottom: 0.5rem; font-weight: 500; font-size: 14px; }
+        .feature-card strong { color: #004080; }
+        .page-footer { background-color: #004080; color: #ffffff; padding: 20px 30px; text-align: center; font-size: 13px; line-height: 1.7; font-weight: 500; border-radius: 0 0 8px 8px; }
+        .page-footer p { margin: 6px 0 0; font-size: 12px; color: #ffffff; }
+        .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .dict-format { background: #fff3cd; border: 2px solid #ffc107; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+        .dict-format h5 { color: #856404; margin-bottom: 0.5rem; }
+        .dict-format code { background: #ffffff; padding: 0.5rem; border-radius: 4px; display: block; margin-top: 0.5rem; font-size: 12px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f8f9fa; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #004080; border-radius: 4px; }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .content-inner { padding: 15px; }
+            .page-header h1 { font-size: 20px; }
+            .upload-grid { grid-template-columns: 1fr; }
+            .rename-item { grid-template-columns: 1fr; gap: 0.5rem; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .feature-grid { grid-template-columns: 1fr; }
+            .btn { padding: 12px 20px; font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="page-header">
+            <div class="logo-row">
+                <div class="logo-box">
+                    <img src="https://github.com/mohamedsillahkanu/gdp-dashboard-2/raw/6c7463b0d5c3be150aafae695a4bcbbd8aeb1499/ICF-SL.jpg" alt="ICF-SL Logo">
+                </div>
+            </div>
+            <h3>Informatics Consultancy Firm-Sierra Leone<br>(ICF-SL)</h3>
+            <p class="tagline"><em>Driving Data-Driven Solutions for Health and Development</em></p>
+            <h1>COLUMN RENAME TOOL</h1>
+            <p class="subtitle">Rename Columns Using a Data Dictionary File</p>
+        </div>
+
+        <div class="content-card">
+            <div class="content-inner">
+                <div id="alertContainer"></div>
+
+                <!-- Upload Section -->
+                <div id="uploadSection">
+                    <div class="section-header">
+                        <span class="section-icon">1</span>
+                        <span class="section-title">UPLOAD FILES</span>
+                    </div>
+
+                    <div class="upload-grid">
+                        <div class="upload-section" id="dataUploadSection">
+                            <h3>STEP 1: DATA FILE</h3>
+                            <p>Upload your main data file (CSV or Excel)</p>
+                            <label class="file-input-wrapper">
+                                Choose Data File
+                                <input type="file" id="dataFileInput" accept=".csv,.xlsx,.xls">
+                            </label>
+                            <div id="dataFileStatus" class="file-status"></div>
+                        </div>
+
+                        <div class="upload-section" id="dictUploadSection">
+                            <h3>STEP 2: DATA DICTIONARY</h3>
+                            <p>Upload rename mapping file (CSV or Excel)</p>
+                            <label class="file-input-wrapper">
+                                Choose Dictionary File
+                                <input type="file" id="dictFileInput" accept=".csv,.xlsx,.xls">
+                            </label>
+                            <div id="dictFileStatus" class="file-status"></div>
+                        </div>
+                    </div>
+
+                    <div class="dict-format">
+                        <h5>Data Dictionary Format</h5>
+                        <p>Your dictionary file should have two columns: old column names in the first column, new names in the second column.</p>
+                        <code>old_name | new_name<br>orgunit | Organisation Unit<br>period | Reporting Period<br>value | Data Value</code>
+                        <div style="margin-top: 1rem;">
+                            <button class="btn btn-secondary" onclick="downloadTemplate()" style="padding: 10px 20px; font-size: 12px;">Download Sample Template</button>
+                        </div>
+                    </div>
+
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <h4>How It Works</h4>
+                            <ol>
+                                <li><strong>Upload Data File:</strong> Your main dataset</li>
+                                <li><strong>Upload Dictionary:</strong> Column name mappings</li>
+                                <li><strong>Auto-Match:</strong> Columns are matched automatically</li>
+                                <li><strong>Manual Entry:</strong> Rename unmatched columns</li>
+                                <li><strong>Download:</strong> Get renamed dataset</li>
+                            </ol>
+                        </div>
+                        <div class="feature-card">
+                            <h4>Features</h4>
+                            <ul>
+                                <li>Automatic column matching</li>
+                                <li>Manual rename for unmatched columns</li>
+                                <li>Clear status indicators</li>
+                                <li>Preview before download</li>
+                                <li>Excel and CSV export</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mapping Section -->
+                <div id="mappingSection" class="hidden">
+                    <div class="section-header">
+                        <span class="section-icon">2</span>
+                        <span class="section-title">COLUMN MAPPING</span>
+                    </div>
+
+                    <div class="stats-grid" id="mappingStats"></div>
+
+                    <div class="config-card">
+                        <h4>Column Rename Mapping</h4>
+                        <div class="info-message">
+                            <strong>Green rows:</strong> Matched from dictionary | 
+                            <strong>Yellow rows:</strong> Not in dictionary (needs manual entry) |
+                            <strong>Blue rows:</strong> Manual entry provided
+                        </div>
+                        <div class="rename-list" id="renameList"></div>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <button class="btn btn-gold" id="applyBtn" onclick="applyRenames()">Apply Renames</button>
+                        <button class="btn btn-secondary" onclick="resetAll()">Start Over</button>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" class="hidden">
+                    <div class="section-header">
+                        <span class="section-icon">3</span>
+                        <span class="section-title">RENAMED DATA</span>
+                    </div>
+
+                    <div class="stats-grid" id="resultStats"></div>
+
+                    <div class="config-card">
+                        <h4>Data Preview (First 100 Rows)</h4>
+                        <div class="table-container">
+                            <table class="results-table" id="previewTable">
+                                <thead id="previewHead"></thead>
+                                <tbody id="previewBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <h4>Rename Summary</h4>
+                        <div id="renameSummary"></div>
+                    </div>
+
+                    <div style="text-align: center; margin: 2rem 0;">
+                        <button class="btn btn-success" onclick="downloadExcel()">Download Excel</button>
+                        <button class="btn btn-primary" onclick="downloadCSV()">Download CSV</button>
+                        <button class="btn btn-secondary" onclick="backToMapping()">Back to Mapping</button>
+                        <button class="btn btn-secondary" onclick="resetAll()">Start Over</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-footer">
+            <p style="margin: 0; font-weight: 700;">National Malaria Control Programme</p>
+            <p>Ministry of Health and Sanitation, Sierra Leone</p>
+            <p style="font-size: 11px;">Medical Stores Compound, Freetown, Sierra Leone</p>
+            <p style="font-size: 10px;">© 2025 Informatics Consultancy Firm-Sierra Leone (ICF-SL)</p>
+        </div>
+    </div>
+
+    <script>
+        let dataFile = null;
+        let dictFile = null;
+        let originalData = [];
+        let originalColumns = [];
+        let renameDict = {};
+        let renamedData = [];
+        let finalMapping = {};
+
+        document.getElementById('dataFileInput').addEventListener('change', function(e) { handleDataFile(e.target.files[0]); });
+        document.getElementById('dictFileInput').addEventListener('change', function(e) { handleDictFile(e.target.files[0]); });
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const div = document.createElement('div');
+            div.className = 'alert alert-' + type;
+            div.textContent = message;
+            container.innerHTML = '';
+            container.appendChild(div);
+            setTimeout(function() { if (div.parentNode) div.parentNode.removeChild(div); }, 5000);
+        }
+
+        function parseFile(file, callback) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            
+            if (ext === 'csv') {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) { callback(results.data); },
+                    error: function(err) { showAlert('Error reading CSV: ' + err.message, 'error'); }
+                });
+            } else if (ext === 'xlsx' || ext === 'xls') {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const data = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+                        callback(data);
+                    } catch (err) { showAlert('Error reading Excel: ' + err.message, 'error'); }
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }
+
+        function handleDataFile(file) {
+            if (!file) return;
+            
+            parseFile(file, function(data) {
+                if (data.length === 0) {
+                    document.getElementById('dataFileStatus').innerHTML = 'Error: Empty file';
+                    document.getElementById('dataFileStatus').className = 'file-status error';
+                    return;
+                }
+                
+                originalData = data;
+                originalColumns = Object.keys(data[0]);
+                dataFile = file;
+                
+                document.getElementById('dataFileStatus').innerHTML = 'Loaded: ' + file.name + '<br>' + data.length + ' rows, ' + originalColumns.length + ' columns';
+                document.getElementById('dataFileStatus').className = 'file-status loaded';
+                
+                showAlert('Data file loaded successfully!', 'success');
+                checkBothFilesLoaded();
+            });
+        }
+
+        function handleDictFile(file) {
+            if (!file) return;
+            
+            parseFile(file, function(data) {
+                if (data.length === 0) {
+                    document.getElementById('dictFileStatus').innerHTML = 'Error: Empty file';
+                    document.getElementById('dictFileStatus').className = 'file-status error';
+                    return;
+                }
+                
+                // Get the first two columns regardless of their names
+                const cols = Object.keys(data[0]);
+                if (cols.length < 2) {
+                    showAlert('Dictionary file must have at least 2 columns (old name, new name)', 'error');
+                    return;
+                }
+                
+                renameDict = {};
+                data.forEach(function(row) {
+                    const oldName = String(row[cols[0]] || '').trim();
+                    const newName = String(row[cols[1]] || '').trim();
+                    if (oldName && newName) {
+                        renameDict[oldName] = newName;
+                    }
+                });
+                
+                dictFile = file;
+                
+                document.getElementById('dictFileStatus').innerHTML = 'Loaded: ' + file.name + '<br>' + Object.keys(renameDict).length + ' mappings found';
+                document.getElementById('dictFileStatus').className = 'file-status loaded';
+                
+                showAlert('Dictionary file loaded! ' + Object.keys(renameDict).length + ' mappings found.', 'success');
+                checkBothFilesLoaded();
+            });
+        }
+
+        function checkBothFilesLoaded() {
+            if (dataFile && dictFile && originalData.length > 0) {
+                buildMappingInterface();
+            }
+        }
+
+        function buildMappingInterface() {
+            document.getElementById('uploadSection').classList.add('hidden');
+            document.getElementById('mappingSection').classList.remove('hidden');
+            
+            let matchedCount = 0;
+            let unmatchedCount = 0;
+            
+            originalColumns.forEach(function(col) {
+                if (renameDict[col]) {
+                    matchedCount++;
+                } else {
+                    unmatchedCount++;
+                }
+            });
+            
+            // Stats
+            document.getElementById('mappingStats').innerHTML = 
+                '<div class="stats-card"><h4>Total Columns</h4><div class="metric-value">' + originalColumns.length + '</div><p>In data file</p></div>' +
+                '<div class="stats-card"><h4>Matched</h4><div class="metric-value success">' + matchedCount + '</div><p>From dictionary</p></div>' +
+                '<div class="stats-card"><h4>Unmatched</h4><div class="metric-value ' + (unmatchedCount > 0 ? 'warning' : '') + '">' + unmatchedCount + '</div><p>Need manual entry</p></div>' +
+                '<div class="stats-card"><h4>Dictionary Size</h4><div class="metric-value">' + Object.keys(renameDict).length + '</div><p>Total mappings</p></div>';
+            
+            // Build rename list
+            const list = document.getElementById('renameList');
+            list.innerHTML = '';
+            
+            originalColumns.forEach(function(col, index) {
+                const matched = renameDict[col];
+                const item = document.createElement('div');
+                item.className = 'rename-item ' + (matched ? 'matched' : 'unmatched');
+                item.id = 'item-' + index;
+                
+                if (matched) {
+                    item.innerHTML = 
+                        '<div class="column-name">' + col + '</div>' +
+                        '<div class="arrow">--></div>' +
+                        '<div class="column-name new">' + matched + '</div>' +
+                        '<div class="status-badge matched">Matched</div>';
+                } else {
+                    item.innerHTML = 
+                        '<div class="column-name">' + col + '</div>' +
+                        '<div class="arrow">--></div>' +
+                        '<div><input type="text" class="manual-input" id="manual-' + index + '" placeholder="Enter new name or leave blank to keep" data-col="' + col + '" oninput="updateItemStatus(' + index + ')"></div>' +
+                        '<div class="status-badge unmatched" id="badge-' + index + '">Unmatched</div>';
+                }
+                
+                list.appendChild(item);
+            });
+        }
+
+        function updateItemStatus(index) {
+            const input = document.getElementById('manual-' + index);
+            const item = document.getElementById('item-' + index);
+            const badge = document.getElementById('badge-' + index);
+            
+            if (input.value.trim()) {
+                item.className = 'rename-item manual';
+                badge.className = 'status-badge manual';
+                badge.textContent = 'Manual';
+            } else {
+                item.className = 'rename-item unmatched';
+                badge.className = 'status-badge unmatched';
+                badge.textContent = 'Unmatched';
+            }
+        }
+
+        function applyRenames() {
+            finalMapping = {};
+            
+            originalColumns.forEach(function(col, index) {
+                if (renameDict[col]) {
+                    finalMapping[col] = renameDict[col];
+                } else {
+                    const input = document.getElementById('manual-' + index);
+                    if (input && input.value.trim()) {
+                        finalMapping[col] = input.value.trim();
+                    } else {
+                        finalMapping[col] = col; // Keep original
+                    }
+                }
+            });
+            
+            // Check for duplicate new names
+            const newNames = Object.values(finalMapping);
+            const duplicates = newNames.filter(function(name, index) { return newNames.indexOf(name) !== index; });
+            
+            if (duplicates.length > 0) {
+                showAlert('Duplicate column names found: ' + duplicates.join(', '), 'error');
+                return;
+            }
+            
+            // Apply renames
+            renamedData = originalData.map(function(row) {
+                const newRow = {};
+                originalColumns.forEach(function(col) {
+                    newRow[finalMapping[col]] = row[col];
+                });
+                return newRow;
+            });
+            
+            showResults();
+        }
+
+        function showResults() {
+            document.getElementById('mappingSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.remove('hidden');
+            
+            const renamedCount = Object.keys(finalMapping).filter(function(k) { return finalMapping[k] !== k; }).length;
+            const unchangedCount = originalColumns.length - renamedCount;
+            
+            document.getElementById('resultStats').innerHTML = 
+                '<div class="stats-card"><h4>Total Columns</h4><div class="metric-value">' + originalColumns.length + '</div><p>Processed</p></div>' +
+                '<div class="stats-card"><h4>Renamed</h4><div class="metric-value success">' + renamedCount + '</div><p>Columns</p></div>' +
+                '<div class="stats-card"><h4>Unchanged</h4><div class="metric-value">' + unchangedCount + '</div><p>Kept original</p></div>' +
+                '<div class="stats-card"><h4>Total Rows</h4><div class="metric-value">' + renamedData.length + '</div><p>In dataset</p></div>';
+            
+            // Preview table
+            const thead = document.getElementById('previewHead');
+            const tbody = document.getElementById('previewBody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+            
+            const newColumns = Object.keys(renamedData[0] || {});
+            let headerRow = '<tr>';
+            newColumns.forEach(function(col) { headerRow += '<th>' + col + '</th>'; });
+            thead.innerHTML = headerRow + '</tr>';
+            
+            renamedData.slice(0, 100).forEach(function(row) {
+                let tr = '<tr>';
+                newColumns.forEach(function(col) {
+                    const val = row[col];
+                    tr += '<td>' + (val !== null && val !== undefined ? val : '') + '</td>';
+                });
+                tbody.innerHTML += tr + '</tr>';
+            });
+            
+            // Summary
+            const summary = document.getElementById('renameSummary');
+            let html = '';
+            originalColumns.forEach(function(col) {
+                const newName = finalMapping[col];
+                if (newName !== col) {
+                    html += '<div class="alert alert-success" style="margin: 0.5rem 0;"><strong>' + col + '</strong> --> <strong>' + newName + '</strong></div>';
+                }
+            });
+            if (!html) {
+                html = '<div class="alert alert-info">No columns were renamed.</div>';
+            }
+            summary.innerHTML = html;
+            
+            showAlert('Renames applied successfully!', 'success');
+        }
+
+        function downloadCSV() {
+            const csv = Papa.unparse(renamedData);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'renamed_data.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            showAlert('CSV downloaded!', 'success');
+        }
+
+        function downloadExcel() {
+            const ws = XLSX.utils.json_to_sheet(renamedData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Renamed Data');
+            XLSX.writeFile(wb, 'renamed_data.xlsx');
+            showAlert('Excel downloaded!', 'success');
+        }
+
+        function backToMapping() {
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('mappingSection').classList.remove('hidden');
+        }
+
+        function downloadTemplate() {
+            const templateData = [
+                { old_name: 'orgunit', new_name: 'Organisation Unit' },
+                { old_name: 'period', new_name: 'Reporting Period' },
+                { old_name: 'dataelement', new_name: 'Data Element' },
+                { old_name: 'value', new_name: 'Data Value' },
+                { old_name: 'district', new_name: 'District Name' },
+                { old_name: 'year', new_name: 'Year' },
+                { old_name: 'month', new_name: 'Month' },
+                { old_name: 'conf', new_name: 'Confirmed Cases' },
+                { old_name: 'test', new_name: 'Tests Conducted' }
+            ];
+            
+            const csv = Papa.unparse(templateData);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'rename_dictionary_template.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            showAlert('Template downloaded! Edit the file with your column mappings.', 'success');
+        }
+
+        function resetAll() {
+            dataFile = null;
+            dictFile = null;
+            originalData = [];
+            originalColumns = [];
+            renameDict = {};
+            renamedData = [];
+            finalMapping = {};
+            
+            document.getElementById('dataFileInput').value = '';
+            document.getElementById('dictFileInput').value = '';
+            document.getElementById('dataFileStatus').innerHTML = '';
+            document.getElementById('dataFileStatus').className = 'file-status';
+            document.getElementById('dictFileStatus').innerHTML = '';
+            document.getElementById('dictFileStatus').className = 'file-status';
+            document.getElementById('alertContainer').innerHTML = '';
+            
+            document.getElementById('uploadSection').classList.remove('hidden');
+            document.getElementById('mappingSection').classList.add('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
